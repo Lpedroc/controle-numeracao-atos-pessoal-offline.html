@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Controle de Numeração – Atos de Pessoal</title>
+<style>
+:root{--bg:#f6f7f9;--sf:#fff;--tx:#1b2430;--mu:#5d6b7c;--bd:#d9dee5;--ac:#1d4f91;--acx:#fff;--ok:#1d7a46;--bad:#b3261e;--warn:#9a6700;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#12161c;--sf:#1b222b;--tx:#e8ecf1;--mu:#9aa7b6;--bd:#2f3a47;--ac:#6ea8ef;--acx:#0d1620;--ok:#5fcb8a;--bad:#ff8a80;--warn:#e3b341;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#12161c;--sf:#1b222b;--tx:#e8ecf1;--mu:#9aa7b6;--bd:#2f3a47;--ac:#6ea8ef;--acx:#0d1620;--ok:#5fcb8a;--bad:#ff8a80;--warn:#e3b341;color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+main{max-width:1100px;margin:0 auto;padding:20px 16px 48px}
+h1{font-size:1.3rem;margin:0 0 2px}h2{font-size:1rem;margin:0 0 12px}
+.sub{color:var(--mu);margin:0 0 18px}
+.card{background:var(--sf);border:1px solid var(--bd);border-radius:10px;padding:16px;margin-bottom:16px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+label{display:block;font-size:.8rem;color:var(--mu);margin-bottom:4px}
+input,select,textarea{width:100%;padding:8px 10px;border:1px solid var(--bd);border-radius:7px;background:var(--bg);color:var(--tx);font:inherit}
+button{padding:8px 14px;border-radius:7px;border:1px solid var(--bd);background:var(--sf);color:var(--tx);font:inherit;cursor:pointer}
+button.p{background:var(--ac);color:var(--acx);border-color:var(--ac);font-weight:600}
+button:disabled{opacity:.5;cursor:wait}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:end}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:16px}
+.stat{background:var(--sf);border:1px solid var(--bd);border-radius:10px;padding:12px}
+.stat b{display:block;font-size:1.4rem}.stat span{color:var(--mu);font-size:.8rem}
+.wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;min-width:760px}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--bd);vertical-align:top;font-size:.88rem}
+th{color:var(--mu);font-weight:600;font-size:.78rem}
+.tag{display:inline-block;padding:1px 8px;border-radius:99px;border:1px solid currentColor;font-size:.75rem}
+.Ativo{color:var(--ok)}.Cancelado{color:var(--bad)}
+.res{border-left:4px solid var(--ok);background:var(--bg);padding:12px 14px;border-radius:6px;margin-top:14px;display:none}
+.res strong{font-size:1.3rem}
+.err{color:var(--bad);margin-top:10px;display:none}
+.cx{text-decoration:line-through;color:var(--mu)}
+dialog{border:1px solid var(--bd);border-radius:10px;background:var(--sf);color:var(--tx);max-width:420px;width:92%}
+details summary{cursor:pointer;color:var(--mu)}
+</style>
+</head>
+<body>
+<main>
+<h1>Controle de Numeração – Atos de Pessoal</h1>
+<p class="sub">Portaria, Resolução e Apostila. A numeração é sequencial por tipo e por ano, e um número nunca é reaproveitado.</p>
+<div id="msg" class="card" style="display:none"></div>
+
+<section class="card">
+  <h2>Solicitar novo número</h2>
+  <div class="grid">
+    <div><label for="tipo">Tipo de documento *</label>
+      <select id="tipo"><option value="PORTARIA">Portaria</option><option value="RESOLUCAO">Resolução</option><option value="APOSTILA">Apostila</option></select></div>
+    <div><label for="dt">Data do ato *</label><input type="date" id="dt"></div>
+    <div><label for="sol">Solicitante *</label><input id="sol" placeholder="Nome do servidor" autocomplete="name"></div>
+    <div><label for="sei">Processo SEI</label><input id="sei" placeholder="018.00000000/2026-00"></div>
+  </div>
+  <div style="margin-top:12px"><label for="ass">Interessado / assunto *</label><textarea id="ass" rows="2" placeholder="Ex.: Designação de servidor para substituição de função de confiança"></textarea></div>
+  <div class="row" style="margin-top:12px"><button class="p" id="go">Gerar número</button></div>
+  <div class="res" id="res"></div>
+  <div class="err" id="err"></div>
+</section>
+
+<div class="stats" id="stats"></div>
+
+<section class="card">
+  <h2>Registros</h2>
+  <div class="row" style="margin-bottom:12px">
+    <div><label for="fT">Tipo</label><select id="fT"><option value="">Todos</option><option value="PORTARIA">Portaria</option><option value="RESOLUCAO">Resolução</option><option value="APOSTILA">Apostila</option></select></div>
+    <div><label for="fA">Ano</label><select id="fA"></select></div>
+    <div style="flex:1;min-width:180px"><label for="fQ">Buscar</label><input id="fQ" placeholder="Número, assunto, SEI, solicitante"></div>
+    <button id="csv">Exportar CSV</button>
+  </div>
+  <div class="wrap"><table><thead><tr><th>Nº</th><th>Tipo</th><th>Data</th><th>Interessado / assunto</th><th>SEI</th><th>Solicitante</th><th>Status</th><th></th></tr></thead><tbody id="tb"></tbody></table></div>
+</section>
+
+<section class="card">
+  <details><summary>Ajustar numeração (já existem atos numerados fora do sistema)</summary>
+  <p class="sub" style="margin-top:10px">Informe o último número já utilizado; o próximo gerado será o seguinte.</p>
+  <div class="row">
+    <div><label for="aT">Tipo</label><select id="aT"><option value="PORTARIA">Portaria</option><option value="RESOLUCAO">Resolução</option><option value="APOSTILA">Apostila</option></select></div>
+    <div><label for="aA">Ano</label><input type="number" id="aA" style="width:100px"></div>
+    <div><label for="aN">Último nº usado</label><input type="number" id="aN" min="0" style="width:130px"></div>
+    <button id="aGo">Aplicar</button>
+  </div>
+  <div class="err" id="aErr"></div></details>
+</section>
+</main>
+
+<dialog id="dlg"><form method="dialog" style="margin:0"><h2>Cancelar número</h2>
+<p class="sub" id="dInfo"></p><label for="dMot">Motivo *</label><textarea id="dMot" rows="3"></textarea>
+<div class="row" style="margin-top:12px;justify-content:flex-end"><button value="x">Voltar</button><button class="p" id="dOk" value="ok">Confirmar cancelamento</button></div></form></dialog>
+
+<script>
+const claudeUse=async n=>{try{return await window.claude.use(n)}catch(e){return null}};
+function localDB(){
+  const K='numeracao_atos_db',subs=[];
+  const load=()=>{try{return JSON.parse(localStorage.getItem(K))||{}}catch(e){return {}}};
+  const save=o=>localStorage.setItem(K,JSON.stringify(o));
+  const snap=(id,v)=>({id,exists:v!==undefined,data:()=>v});
+  const fire=()=>subs.forEach(f=>f());
+  return{
+    doc:p=>({
+      get:async()=>snap(p.split('/').pop(),load()[p]),
+      set:async d=>{const o=load();o[p]=d;save(o);fire()},
+      update:async d=>{const o=load();o[p]={...o[p],...d};save(o);fire()},
+      acquire:async()=>({acquired:true})
+    }),
+    collection:c=>({onSnapshot:next=>{
+      const f=()=>{const o=load();next({docs:Object.keys(o).filter(k=>k.startsWith(c+'/')).map(k=>snap(k.split('/').pop(),o[k]))})};
+      subs.push(f);f();return()=>{}
+    }})
+  };
+}
+const TIPOS={PORTARIA:'Portaria',RESOLUCAO:'Resolução',APOSTILA:'Apostila'};
+const $=id=>document.getElementById(id);
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const pad=n=>String(n).padStart(4,'0');
+const hold=Math.random().toString(36).slice(2)+Date.now();
+const hoje=new Date();const ANO=hoje.getFullYear();
+let db=null,rows=[],cancelId=null;
+
+function store(k,v){try{if(v===undefined)return localStorage.getItem(k)||'';localStorage.setItem(k,v)}catch(e){return ''}}
+function show(el,txt){el.textContent=txt;el.style.display='block'}
+const fmtData=d=>d?d.split('-').reverse().join('/'):'';
+
+$('dt').value=hoje.toISOString().slice(0,10);
+$('sol').value=store('sol');
+$('aA').value=ANO;
+
+async function reservar(tipo,ano,dados){
+  const cref=db.doc('contadores/'+tipo+'-'+ano);
+  for(let i=0;i<10;i++){
+    const a=await cref.acquire({holder:hold,ttlMs:6000});
+    if(a.acquired){
+      const s=await cref.get();
+      const n=(s.exists?(s.data().ultimo||0):0)+1;
+      const rid=tipo+'-'+ano+'-'+pad(n);
+      const ex=await db.doc('registros/'+rid).get();
+      if(ex.exists){await cref.set({tipo,ano,ultimo:n});continue}
+      await db.doc('registros/'+rid).set({...dados,tipo,ano,numero:n,status:'Ativo',criadoEm:new Date().toISOString()});
+      await cref.set({tipo,ano,ultimo:n});
+      return n;
+    }
+    await new Promise(r=>setTimeout(r,400+Math.random()*700));
+  }
+  throw new Error('Sistema ocupado. Tente novamente em instantes.');
+}
+
+$('go').onclick=async()=>{
+  const err=$('err');err.style.display='none';$('res').style.display='none';
+  const tipo=$('tipo').value,dt=$('dt').value,sol=$('sol').value.trim(),ass=$('ass').value.trim(),sei=$('sei').value.trim();
+  if(!dt||!sol||!ass){show(err,'Preencha tipo, data, solicitante e assunto.');return}
+  const ano=+dt.slice(0,4);
+  $('go').disabled=true;
+  try{
+    const n=await reservar(tipo,ano,{dataAto:dt,solicitante:sol,assunto:ass,sei});
+    store('sol',sol);
+    const r=$('res');r.style.display='block';r.textContent='';
+    const l=document.createElement('div');l.textContent='Número reservado:';
+    const b=document.createElement('strong');b.textContent=TIPOS[tipo]+' nº '+n+'/'+ano;
+    r.append(l,b);$('ass').value='';$('sei').value='';
+  }catch(e){show(err,e.message||'Não foi possível gerar o número.')}
+  $('go').disabled=false;
+};
+
+$('aGo').onclick=async()=>{
+  const e=$('aErr');e.style.display='none';
+  const tipo=$('aT').value,ano=+$('aA').value,n=+$('aN').value;
+  if(!ano||isNaN(n)||n<0){show(e,'Informe ano e número válidos.');return}
+  try{
+    const cref=db.doc('contadores/'+tipo+'-'+ano);
+    const a=await cref.acquire({holder:hold,ttlMs:5000});
+    if(!a.acquired){show(e,'Sistema ocupado. Tente novamente.');return}
+    const mx=Math.max(0,...rows.filter(r=>r.tipo===tipo&&r.ano===ano).map(r=>r.numero));
+    if(n<mx){show(e,'Já existe registro com número maior ('+mx+').');return}
+    await cref.set({tipo,ano,ultimo:n});
+    show(e,'Contador de '+TIPOS[tipo]+'/'+ano+' ajustado. Próximo número: '+(n+1)+'.');
+  }catch(x){show(e,'Falha ao ajustar.')}
+};
+
+function render(){
+  const anos=[...new Set(rows.map(r=>r.ano).concat([ANO]))].sort((a,b)=>b-a);
+  const fA=$('fA'),cur=fA.value||String(ANO);
+  fA.innerHTML=anos.map(a=>'<option>'+a+'</option>').join('');fA.value=anos.includes(+cur)?cur:String(ANO);
+  const ft=$('fT').value,fa=+fA.value,q=$('fQ').value.toLowerCase().trim();
+  const lista=rows.filter(r=>r.ano===fa&&(!ft||r.tipo===ft)&&(!q||[r.numero+'/'+r.ano,r.assunto,r.sei,r.solicitante].join(' ').toLowerCase().includes(q)))
+    .sort((a,b)=>a.tipo.localeCompare(b.tipo)||b.numero-a.numero);
+  $('stats').innerHTML=Object.keys(TIPOS).map(t=>{
+    const rs=rows.filter(r=>r.tipo===t&&r.ano===fa),mx=Math.max(0,...rs.map(r=>r.numero));
+    return '<div class="stat"><span>'+TIPOS[t]+' '+fa+'</span><b>'+mx+'</b><span>último nº · '+rs.filter(r=>r.status==='Cancelado').length+' cancelado(s)</span></div>'}).join('');
+  $('tb').innerHTML=lista.length?lista.map(r=>{
+    const c=r.status==='Cancelado';
+    return '<tr><td class="'+(c?'cx':'')+'"><b>'+r.numero+'/'+r.ano+'</b></td><td>'+TIPOS[r.tipo]+'</td><td>'+fmtData(r.dataAto)+'</td><td>'+esc(r.assunto)+(c?'<br><small class="Cancelado">Motivo: '+esc(r.motivo)+'</small>':'')+'</td><td>'+esc(r.sei)+'</td><td>'+esc(r.solicitante)+'</td><td><span class="tag '+r.status+'">'+r.status+'</span></td><td>'+(c?'':'<button data-id="'+esc(r.id)+'">Cancelar</button>')+'</td></tr>'}).join('')
+    :'<tr><td colspan="8" style="color:var(--mu)">Nenhum registro encontrado.</td></tr>';
+}
+['fT','fA','fQ'].forEach(i=>$(i).addEventListener('input',render));
+
+$('tb').addEventListener('click',e=>{
+  const id=e.target.dataset&&e.target.dataset.id;if(!id)return;
+  const r=rows.find(x=>x.id===id);cancelId=id;
+  $('dInfo').textContent=TIPOS[r.tipo]+' nº '+r.numero+'/'+r.ano+'. O número permanece registrado como cancelado e não será reutilizado.';
+  $('dMot').value='';$('dlg').showModal();
+});
+$('dlg').addEventListener('close',async()=>{
+  if($('dlg').returnValue!=='ok'||!cancelId)return;
+  const m=$('dMot').value.trim();if(!m){alert('Informe o motivo.');return}
+  try{await db.doc('registros/'+cancelId).update({status:'Cancelado',motivo:m,canceladoEm:new Date().toISOString()})}catch(e){alert('Falha ao cancelar.')}
+  cancelId=null;
+});
+
+$('csv').onclick=async()=>{
+  let d=await claudeUse('downloads');
+  if(!d)d={save:async({filename,data})=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([data],{type:'text/csv;charset=utf-8'}));a.download=filename;a.click()}};
+  const q=v=>'"'+String(v==null?'':v).replace(/"/g,'""')+'"';
+  const h=['Tipo','Número','Ano','Data do ato','Assunto','SEI','Solicitante','Status','Motivo cancelamento'];
+  const ls=rows.slice().sort((a,b)=>a.ano-b.ano||a.tipo.localeCompare(b.tipo)||a.numero-b.numero)
+    .map(r=>[TIPOS[r.tipo],r.numero,r.ano,r.dataAto,r.assunto,r.sei,r.solicitante,r.status,r.motivo].map(q).join(';'));
+  try{await d.save({filename:'numeracao-atos-pessoal.csv',data:'\ufeff'+[h.map(q).join(';')].concat(ls).join('\r\n')})}catch(e){}
+};
+
+(async()=>{
+  const m=$('msg');m.style.display='block';m.textContent='Carregando…';
+  const t=setTimeout(()=>{if(!db||!rows.loaded)m.textContent='Conexão lenta ou banco indisponível. Abra o sistema pela página publicada, com sua conta.'},10000);
+  db=await claudeUse('db');
+  if(!db){db=localDB();document.querySelector('.sub').textContent+=' Modo local: os dados ficam salvos apenas neste navegador.'}
+  if(!db){m.textContent='Banco compartilhado indisponível nesta visualização. Faça login e abra a página publicada.';$('go').disabled=true;return}
+  db.collection('registros').onSnapshot(s=>{clearTimeout(t);rows.loaded=true;m.style.display='none';rows=s.docs.map(d=>({id:d.id,...d.data()}));rows.loaded=true;render()},e=>{m.style.display='block';m.textContent='Erro ao ler os registros.'});
+  render();
+})();
+</script>
+</body>
+</html>
